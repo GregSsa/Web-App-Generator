@@ -115,3 +115,4 @@ export async function createCategory(formData: FormData) {
   await supabase.from("categories").insert({ user_id: user.id, name });
   revalidatePath("/categories");
 }
+export async function toggleMangaNotifications(mangaId: string, enabled: boolean) { const user = await requireUser(); const supabase = await createClient(); await supabase.from("mangas").update({ notifications_enabled: enabled }).eq("id", mangaId).eq("user_id", user.id); refreshMangaViews(mangaId); }

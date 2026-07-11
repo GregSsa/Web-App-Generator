@@ -29,6 +29,7 @@ export type MangaListItem = {
   notifications_enabled: boolean;
   last_checked_at: string | null;
   last_check_status: string | null;
+  cover_image_url?: string | null;
   chapters?: { id: string; number_label: string; number_normalized: number | null; url: string; detected_at: string }[];
   reading_progress?: { last_read_number: number | null }[];
 };
