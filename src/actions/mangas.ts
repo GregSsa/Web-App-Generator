@@ -76,11 +76,35 @@ export async function updateProgress(mangaId: string, chapterId: string, number:
 }
 
 export async function setProgressFromForm(mangaId: string, formData: FormData) {
-  const chapterId = String(formData.get("chapterId") ?? "");
+  const number = Number(formData.get("chapterNumber"));
+  if (!Number.isFinite(number) || number < 0) return;
   const user = await requireUser();
   const supabase = await createClient();
-  const { data: chapter } = await supabase.from("chapters").select("number_normalized").eq("id", chapterId).eq("manga_id", mangaId).eq("user_id", user.id).single();
-  if (chapter) await updateProgress(mangaId, chapterId, chapter.number_normalized);
+  const { data: chapter } = await supabase.from("chapters").select("id").eq("manga_id", mangaId).eq("user_id", user.id).eq("number_normalized", number).maybeSingle();
+  await supabase.from("chapters").update({ is_read: true }).eq("manga_id", mangaId).eq("user_id", user.id).lte("number_normalized", number);
+  await supabase.from("chapters").update({ is_read: false }).eq("manga_id", mangaId).eq("user_id", user.id).gt("number_normalized", number);
+  await supabase.from("reading_progress").upsert({ user_id: user.id, manga_id: mangaId, last_read_chapter_id: chapter?.id ?? null, last_read_number: number }, { onConflict: "user_id,manga_id" });
+  refreshMangaViews(mangaId);
+}
+
+export async function updateMangaRating(mangaId: string, formData: FormData) {
+  const user = await requireUser();
+  const rawRating = String(formData.get("rating") ?? "").trim();
+  const rating = rawRating === "" ? null : Number(rawRating);
+  if (rating !== null && (!Number.isInteger(rating) || rating < 0 || rating > 10)) return;
+  const notes = String(formData.get("notes") ?? "").slice(0, 5000).trim();
+  const supabase = await createClient();
+  await supabase.from("mangas").update({ rating, notes: notes || null }).eq("id", mangaId).eq("user_id", user.id);
+  refreshMangaViews(mangaId);
+}
+
+export async function updateMangaCategories(mangaId: string, formData: FormData) {
+  const user = await requireUser();
+  const categoryIds = [...new Set(formData.getAll("categoryIds").map(String).filter(Boolean))];
+  const supabase = await createClient();
+  await supabase.from("manga_categories").delete().eq("manga_id", mangaId).eq("user_id", user.id);
+  if (categoryIds.length) await supabase.from("manga_categories").insert(categoryIds.map((category_id) => ({ manga_id: mangaId, category_id, user_id: user.id })));
+  refreshMangaViews(mangaId);
 }
 
 export async function updateMangaDetails(mangaId: string, formData: FormData) {
