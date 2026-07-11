@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkManga } from "@/lib/extraction/check-manga";
+import { lookupAniList } from "@/lib/catalog/anilist";
 import { mangaFormSchema } from "@/lib/validations/manga";
 import { requireUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -34,9 +35,10 @@ export async function createManga(_: MangaActionState, formData: FormData): Prom
   if (!parsed.success) return { error: "Vérifiez les champs.", fieldErrors: parsed.error.flatten().fieldErrors };
 
   const supabase = await createClient();
+  const catalog = await lookupAniList(parsed.data.title).catch(() => null);
   const { data: manga, error } = await supabase
     .from("mangas")
-    .insert({ user_id: user.id, title: parsed.data.title, canonical_url: parsed.data.canonicalUrl, source_name: parsed.data.sourceName, status: parsed.data.status, notifications_enabled: parsed.data.notificationsEnabled, notes: parsed.data.notes || null, rating: parsed.data.rating })
+    .insert({ user_id: user.id, title: parsed.data.title, canonical_url: parsed.data.canonicalUrl, source_name: parsed.data.sourceName, status: parsed.data.status, notifications_enabled: parsed.data.notificationsEnabled, notes: parsed.data.notes || null, rating: parsed.data.rating, anilist_id: catalog?.id ?? null, anilist_url: catalog?.siteUrl ?? null, cover_image_url: catalog?.coverImage.large ?? null, banner_image_url: catalog?.bannerImage ?? null, synopsis: catalog?.description ?? null, format: catalog?.format ?? null, catalog_status: catalog?.status ?? null, country_of_origin: catalog?.countryOfOrigin ?? null, catalog_chapters: catalog?.chapters ?? null, catalog_volumes: catalog?.volumes ?? null, genres: catalog?.genres ?? [], authors: catalog?.staff.nodes.map((node) => node.name.full).filter((name): name is string => Boolean(name)) ?? [] })
     .select("id")
     .single();
   if (error || !manga) return { error: error?.code === "23505" ? "Ce manga existe déjà dans votre bibliothèque." : "Impossible d’enregistrer le manga." };

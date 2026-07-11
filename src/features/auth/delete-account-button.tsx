@@ -1,0 +1,5 @@
+"use client";
+import { deleteOwnAccount } from "@/actions/auth";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+export function DeleteAccountButton() { return <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive">Supprimer mon compte</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Supprimer définitivement votre compte ?</AlertDialogTitle><AlertDialogDescription>Tous vos mangas, chapitres, catégories, notifications et paramètres seront supprimés. Cette action est irréversible.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><form action={deleteOwnAccount}><AlertDialogAction type="submit" variant="destructive">Supprimer le compte</AlertDialogAction></form></AlertDialogFooter></AlertDialogContent></AlertDialog>; }

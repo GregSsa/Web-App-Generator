@@ -1,0 +1,15 @@
+begin;
+alter table public.mangas add column anilist_id integer;
+alter table public.mangas add column anilist_url text check (anilist_url is null or anilist_url ~ '^https://anilist.co/');
+alter table public.mangas add column cover_image_url text check (cover_image_url is null or cover_image_url ~ '^https?://');
+alter table public.mangas add column banner_image_url text check (banner_image_url is null or banner_image_url ~ '^https?://');
+alter table public.mangas add column synopsis text check (synopsis is null or char_length(synopsis) <= 10000);
+alter table public.mangas add column format text check (format is null or char_length(format) <= 40);
+alter table public.mangas add column catalog_status text check (catalog_status is null or char_length(catalog_status) <= 40);
+alter table public.mangas add column country_of_origin text check (country_of_origin is null or char_length(country_of_origin) <= 8);
+alter table public.mangas add column catalog_chapters integer check (catalog_chapters is null or catalog_chapters >= 0);
+alter table public.mangas add column catalog_volumes integer check (catalog_volumes is null or catalog_volumes >= 0);
+alter table public.mangas add column genres text[] not null default '{}';
+alter table public.mangas add column authors text[] not null default '{}';
+create index mangas_anilist_id_idx on public.mangas(anilist_id) where anilist_id is not null;
+commit;

@@ -1,6 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getUser } from "@/lib/supabase/auth";
 
 export type AuthState = { error?: string; success?: string };
 export async function signIn(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -20,3 +22,4 @@ export async function requestPasswordReset(_: AuthState, formData: FormData): Pr
   return error ? { error: error.message } : { success: "Un lien de récupération a été envoyé." };
 }
 export async function signOut() { const supabase = await createClient(); await supabase.auth.signOut(); redirect("/"); }
+export async function deleteOwnAccount() { const user = await getUser(); if (!user) redirect("/"); const admin = createAdminClient(); const { error } = await admin.auth.admin.deleteUser(user.id); if (error) throw new Error("Suppression du compte impossible."); redirect("/"); }
