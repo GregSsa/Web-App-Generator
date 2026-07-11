@@ -4,6 +4,14 @@ import type { SourceAdapter } from "./types";
 
 const chapterPattern = /(?:chapitre|chapter|chap\.?|ch\.?)\s*(\d+(?:[.,]\d+)?[a-z]?)/i;
 
+function cleanMangaTitle(title: string | null) {
+  if (!title) return null;
+  const withoutSite = title.replace(/\s*[|–—-].*$/, "").trim();
+  const chapterMatch = withoutSite.match(chapterPattern);
+  const cleaned = chapterMatch?.index === undefined ? withoutSite : withoutSite.slice(0, chapterMatch.index);
+  return cleaned.replace(/[\s:|–—-]+$/, "").trim() || null;
+}
+
 export const genericAdapter: SourceAdapter = {
   name: "generic",
   domains: ["*"],
@@ -28,7 +36,7 @@ export const genericAdapter: SourceAdapter = {
     candidates.sort((a, b) => (b.number ?? -1) - (a.number ?? -1));
     const latest = candidates[0];
     return {
-      mangaTitle: title?.replace(/\s*[|–—-].*$/, "") || null,
+      mangaTitle: cleanMangaTitle(title),
       canonicalUrl,
       sourceName: url.hostname.replace(/^www\./, ""),
       latestChapter: latest ? { number: latest.number, label: latest.label, title: null, url: latest.href, publishedAt: null } : null,
