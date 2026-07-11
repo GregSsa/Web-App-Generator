@@ -4,9 +4,10 @@ import { deriveChapterUrl } from "./chapter-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { lookupAniList } from "@/lib/catalog/anilist";
 import type { CheckResultStatus } from "@/types/manga";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function checkManga(mangaId: string, userId: string): Promise<{ status: CheckResultStatus; message?: string }> {
-  const admin = createAdminClient(); const { data: manga, error: mangaError } = await admin.from("mangas").select("*").eq("id", mangaId).eq("user_id", userId).maybeSingle();
+export async function checkManga(mangaId: string, userId: string, client?: SupabaseClient): Promise<{ status: CheckResultStatus; message?: string }> {
+  const admin = client ?? createAdminClient(); const { data: manga, error: mangaError } = await admin.from("mangas").select("*").eq("id", mangaId).eq("user_id", userId).maybeSingle();
   if (!manga) return { status: "failed", message: mangaError ? "Impossible de charger ce manga pour vérification." : "Manga introuvable" };
   const now = new Date(); if (manga.next_check_at && new Date(manga.next_check_at) > now) return { status: "rate_limited", message: "Ce manga vient déjà d’être vérifié." };
   const started = Date.now();

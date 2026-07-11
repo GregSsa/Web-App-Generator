@@ -31,4 +31,7 @@ export const mangaFormSchema = z.object({
   chapterNumber: z.coerce.number().nonnegative().nullable().optional(),
   chapterTitle: z.string().max(300).optional(),
   chapterUrl: z.union([z.literal(""), z.url().max(2048)]).optional(),
+  latestChapterLabel: z.string().max(100).optional(),
+  latestChapterNumber: z.coerce.number().nonnegative().nullable().optional(),
+  latestChapterUrl: z.union([z.literal(""), z.url().max(2048)]).optional(),
 });

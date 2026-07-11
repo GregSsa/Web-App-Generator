@@ -24,7 +24,7 @@ export async function POST() {
 
   const summary = { processed: 0, newChapters: 0, unchanged: 0, ambiguous: 0, failed: 0, rateLimited: 0 };
   for (const manga of mangas ?? []) {
-    const result = await checkManga(manga.id, user.id);
+    const result = await checkManga(manga.id, user.id, supabase);
     summary.processed += 1;
     if (result.status === "new_chapter") summary.newChapters += 1;
     if (result.status === "unchanged") summary.unchanged += 1;

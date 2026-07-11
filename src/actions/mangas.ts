@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkManga } from "@/lib/extraction/check-manga";
+import { deriveChapterUrl } from "@/lib/extraction/chapter-url";
 import { lookupAniList } from "@/lib/catalog/anilist";
 import { mangaFormSchema } from "@/lib/validations/manga";
 import { requireUser } from "@/lib/supabase/auth";
@@ -31,6 +32,9 @@ export async function createManga(_: MangaActionState, formData: FormData): Prom
     chapterNumber: formData.get("chapterNumber") ? Number(formData.get("chapterNumber")) : null,
     chapterTitle: formData.get("chapterTitle") ?? "",
     chapterUrl: formData.get("chapterUrl") ?? "",
+    latestChapterLabel: formData.get("latestChapterLabel") ?? "",
+    latestChapterNumber: formData.get("latestChapterNumber") ? Number(formData.get("latestChapterNumber")) : null,
+    latestChapterUrl: formData.get("latestChapterUrl") ?? "",
   });
   if (!parsed.success) return { error: "Vérifiez les champs.", fieldErrors: parsed.error.flatten().fieldErrors };
 
@@ -43,16 +47,27 @@ export async function createManga(_: MangaActionState, formData: FormData): Prom
     .single();
   if (error || !manga) return { error: error?.code === "23505" ? "Ce manga existe déjà dans votre bibliothèque." : "Impossible d’enregistrer le manga." };
 
-  if (parsed.data.chapterLabel && parsed.data.chapterUrl) {
-    const { data: chapter, error: chapterError } = await supabase
-      .from("chapters")
-      .insert({ user_id: user.id, manga_id: manga.id, number_label: parsed.data.chapterLabel, number_normalized: parsed.data.chapterNumber, title: parsed.data.chapterTitle || null, url: parsed.data.chapterUrl, is_read: true })
-      .select("id")
-      .single();
-    if (chapterError || !chapter) return { error: "Le manga a été créé, mais le chapitre initial n’a pas pu être enregistré." };
-    await supabase.from("reading_progress").upsert({ user_id: user.id, manga_id: manga.id, last_read_chapter_id: chapter.id, last_read_number: parsed.data.chapterNumber }, { onConflict: "user_id,manga_id" });
+  if (parsed.data.chapterLabel && parsed.data.chapterUrl && parsed.data.chapterNumber !== null && parsed.data.chapterNumber !== undefined) {
+    const currentNumber = parsed.data.chapterNumber;
+    const detectedNumber = parsed.data.latestChapterNumber ?? currentNumber;
+    const lastInteger = Math.max(Math.floor(currentNumber), Math.floor(detectedNumber));
+    const canBuildRange = Number.isInteger(currentNumber) && Number.isInteger(detectedNumber) && lastInteger <= 2000;
+    const numbers = canBuildRange ? Array.from({ length: lastInteger }, (_, index) => index + 1) : [...new Set([currentNumber, detectedNumber])];
+    const chapters = numbers.map((number) => ({
+      user_id: user.id,
+      manga_id: manga.id,
+      number_label: number === detectedNumber && parsed.data.latestChapterLabel ? parsed.data.latestChapterLabel : `Chapter ${number}`,
+      number_normalized: number,
+      title: number === currentNumber ? parsed.data.chapterTitle || null : null,
+      url: number === currentNumber ? parsed.data.chapterUrl! : number === detectedNumber && parsed.data.latestChapterUrl ? parsed.data.latestChapterUrl : deriveChapterUrl(parsed.data.chapterUrl!, currentNumber, number),
+      is_read: number <= currentNumber,
+    }));
+    const { data: savedChapters, error: chapterError } = await supabase.from("chapters").upsert(chapters, { onConflict: "manga_id,url" }).select("id,number_normalized");
+    const currentChapter = savedChapters?.find((chapter) => Number(chapter.number_normalized) === currentNumber);
+    if (chapterError || !currentChapter) return { error: "Le manga a été créé, mais ses chapitres n’ont pas pu être enregistrés." };
+    await supabase.from("reading_progress").upsert({ user_id: user.id, manga_id: manga.id, last_read_chapter_id: currentChapter.id, last_read_number: currentNumber }, { onConflict: "user_id,manga_id" });
     // Un contrôle initial détecte le dernier chapitre disponible ; l’échec ne bloque jamais l’ajout.
-    await checkManga(manga.id, user.id);
+    await checkManga(manga.id, user.id, supabase);
   }
 
   refreshMangaViews(manga.id);
