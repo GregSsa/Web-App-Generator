@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+export function AuthPage({ title, description, children }: { title: string; description: string; children: React.ReactNode }) { return <main className="grid min-h-dvh place-items-center p-4"><div className="w-full max-w-md"><Link href="/" className="mb-6 block text-center font-semibold">Manga Tracker</Link><Card><CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader><CardContent>{children}</CardContent></Card></div></main>; }

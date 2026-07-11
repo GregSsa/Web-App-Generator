@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest"; import { assertPublicUrl, normalizeUrl } from "@/lib/extraction/normalize-url";
+describe("normalizeUrl", () => { it("retire le fragment", () => expect(normalizeUrl("https://Example.com/manga#chapter").toString()).toBe("https://example.com/manga")); it.each(["file:///etc/passwd","ftp://example.com/a","https://user:pass@example.com","https://example.com:8080"])("rejette %s", (url) => expect(() => normalizeUrl(url)).toThrow()); });
+describe("assertPublicUrl", () => { it.each(["http://127.0.0.1","http://10.1.2.3","http://192.168.1.2","http://[::1]"])("bloque %s", async (url) => await expect(assertPublicUrl(url)).rejects.toThrow()); });

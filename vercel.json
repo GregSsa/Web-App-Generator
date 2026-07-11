@@ -1,0 +1,1 @@
+{"crons":[{"path":"/api/cron/check-mangas","schedule":"0 3 * * *"}]}

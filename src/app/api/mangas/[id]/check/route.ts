@@ -1,0 +1,2 @@
+import { NextResponse } from "next/server"; import { getUser } from "@/lib/supabase/auth"; import { checkManga } from "@/lib/extraction/check-manga";
+export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) { const user = await getUser(); if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 }); const { id } = await params; const result = await checkManga(id, user.id); return NextResponse.json(result, { status: result.status === "failed" ? 422 : result.status === "rate_limited" ? 429 : 200 }); }
