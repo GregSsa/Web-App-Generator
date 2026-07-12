@@ -18,6 +18,15 @@ export type ExtractedMangaMetadata = {
   warnings: string[];
 };
 
+export type UrlMangaIdentification = {
+  mangaTitle: string | null;
+  canonicalUrl: string;
+  sourceName: string;
+  currentChapter: ChapterMetadata | null;
+  confidence: number;
+  warnings: string[];
+};
+
 export type CheckResultStatus = "unchanged" | "new_chapter" | "ambiguous" | "failed" | "rate_limited";
 
 export type MangaListItem = {

@@ -12,9 +12,10 @@ export async function checkManga(mangaId: string, userId: string, client?: Supab
   const now = new Date(); if (manga.next_check_at && new Date(manga.next_check_at) > now) return { status: "rate_limited", message: "Ce manga vient déjà d’être vérifié." };
   const started = Date.now();
   try {
-    const [metadata, catalog] = await Promise.all([extractMangaMetadata(manga.canonical_url), lookupAniList(manga.title)]); const latest = metadata.latestChapter;
+    const { data: sourceChapter } = await admin.from("chapters").select("number_label,number_normalized,url").eq("manga_id", mangaId).eq("user_id", userId).order("number_normalized", { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
+    const [metadata, catalog] = await Promise.all([extractMangaMetadata(sourceChapter?.url ?? manga.canonical_url), lookupAniList(manga.title)]); const latest = metadata.latestChapter;
     if (catalog) await admin.from("mangas").update({ anilist_id: catalog.id, anilist_url: catalog.siteUrl, cover_image_url: catalog.coverImage.large, banner_image_url: catalog.bannerImage, synopsis: catalog.description, format: catalog.format, catalog_status: catalog.status, country_of_origin: catalog.countryOfOrigin, catalog_chapters: catalog.chapters, catalog_volumes: catalog.volumes, genres: catalog.genres, authors: catalog.staff.nodes.map((node) => node.name.full).filter((name): name is string => Boolean(name)) }).eq("id", mangaId).eq("user_id", userId);
-    const { data: current } = await admin.from("chapters").select("number_label,number_normalized,url").eq("manga_id", mangaId).order("number_normalized", { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
+    const current = sourceChapter;
     const comparison = compareChapters(current?.number_normalized ?? current?.number_label ?? null, latest?.number ?? latest?.label ?? null); let status: CheckResultStatus = "unchanged";
     if (!latest?.url || comparison === "ambiguous") status = "ambiguous";
     else if (!current || comparison === "newer") {

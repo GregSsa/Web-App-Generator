@@ -19,6 +19,14 @@ export const extractedMangaMetadataSchema = z.object({
 });
 
 export const extractRequestSchema = z.object({ url: z.url().max(2048) });
+export const urlMangaIdentificationSchema = z.object({
+  mangaTitle: z.string().min(1).max(300).nullable(),
+  canonicalUrl: z.url().max(2048),
+  sourceName: z.string().min(1).max(120),
+  currentChapter: chapterMetadataSchema.nullable(),
+  confidence: z.number().min(0).max(1),
+  warnings: z.array(z.string().max(300)).max(20),
+});
 export const mangaFormSchema = z.object({
   title: z.string().trim().min(1, "Le titre est obligatoire").max(300),
   canonicalUrl: z.url("URL invalide").max(2048),
